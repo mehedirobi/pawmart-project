@@ -1,20 +1,18 @@
-import React from "react";
+
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
 import Footer from "../components/Footer/Footer";
 
 const HomeLayout = () => {
-  const location = useLocation();
+  const { pathname } = useLocation();
 
-  const isDashboard = location.pathname.startsWith("/my-dashboard");
+  const isDashboard = pathname.startsWith("/my-dashboard");
 
   return (
-    <div className="min-h-screen flex flex-col bg-base-200 dark:bg-neutral text-neutral dark:text-white">
-      
-      
+    <div className="flex min-h-screen flex-col bg-base-200 text-neutral transition-colors duration-200 dark:bg-neutral dark:text-white">
       <Navbar />
 
-      <main className="flex-1">
+      <main id="main-content" className="min-w-0 flex-1">
         <Outlet />
       </main>
 
