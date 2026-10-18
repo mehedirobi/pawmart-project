@@ -1,53 +1,80 @@
-import { useState, useEffect } from "react";
-import { MdDarkMode } from "react-icons/md";
-import { CiLight } from "react-icons/ci";
+import { useEffect, useState } from "react";
+import { MdDarkMode, MdLightMode } from "react-icons/md";
+
+const LIGHT_THEME = "mytheme";
+const DARK_THEME = "dark";
+const STORAGE_KEY = "theme";
+
+function getInitialTheme() {
+  if (typeof window === "undefined") {
+    return LIGHT_THEME;
+  }
+
+  try {
+    const savedTheme = window.localStorage.getItem(STORAGE_KEY);
+
+    if (savedTheme === DARK_THEME || savedTheme === LIGHT_THEME) {
+      return savedTheme;
+    }
+  } catch {
+    // Continue with system preference if localStorage is unavailable.
+  }
+
+  if (
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+  ) {
+    return DARK_THEME;
+  }
+
+  return LIGHT_THEME;
+}
 
 const DarkModeToggle = () => {
-  // Initial theme: localStorage or system preference
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("theme");
-    if (saved) return saved;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "mytheme"; // DaisyUI custom light theme
-  });
+  const [theme, setTheme] = useState(getInitialTheme);
 
-  // Apply theme to document
+  const isDark = theme === DARK_THEME;
+
   useEffect(() => {
     const root = document.documentElement;
 
-    if (theme === "dark") {
-      root.classList.add("dark"); // Tailwind dark
-      root.setAttribute("data-theme", "dark"); // DaisyUI dark
-    } else {
-      root.classList.remove("dark"); // Tailwind light
-      root.setAttribute("data-theme", "mytheme"); // DaisyUI custom light
+    root.classList.toggle("dark", isDark);
+    root.setAttribute("data-theme", theme);
+    root.style.colorScheme = isDark ? "dark" : "light";
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      // Theme still works for the current session.
     }
+  }, [theme, isDark]);
 
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  // Toggle function
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "mytheme" : "dark");
+    setTheme((currentTheme) =>
+      currentTheme === DARK_THEME ? LIGHT_THEME : DARK_THEME
+    );
   };
 
   return (
     <button
+      type="button"
       onClick={toggleTheme}
-      className="btn btn-sm btn-outline btn-primary flex items-center gap-2"
-      aria-label="Toggle theme"
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={isDark}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 text-slate-700 outline-none transition-transform duration-200 hover:scale-110 hover:text-amber-500 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:scale-95 dark:text-slate-200 dark:hover:text-amber-300 dark:focus-visible:ring-offset-slate-950"
     >
-      {theme === "dark" ? (
-        <>
-          <CiLight size={18} />
-          Light
-        </>
+      {isDark ? (
+        <MdDarkMode
+          size={25}
+          className="transition-transform duration-200"
+          aria-hidden="true"
+        />
       ) : (
-        <>
-          <MdDarkMode size={18} />
-          Dark
-        </>
+        <MdLightMode
+          size={25}
+          className="text-amber-500 transition-transform duration-200"
+          aria-hidden="true"
+        />
       )}
     </button>
   );
