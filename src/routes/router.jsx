@@ -108,7 +108,7 @@ const router = createBrowserRouter([
       },
       {
         path: "listing-details/:id",
-        element: <ListingDetails />,
+        element: <PrivateRoute><ListingDetails /></PrivateRoute>,
       },
       {
         path: "my-orders",
