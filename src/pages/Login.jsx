@@ -1,141 +1,267 @@
-import React, { useContext, useState } from "react";
-import { AuthContext } from "../context/AuthContext.jsx";
+
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
+import { AuthContext } from "../context/AuthContext.jsx";
 
 const Login = () => {
   const { signInWithGoogle, loginUser } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    mode: "onTouched",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const onSubmit = async (data) => {
+  const onSubmit = async ({ email, password }) => {
+    if (loading) return;
+
     setLoading(true);
+
     try {
-      await loginUser(data.email, data.password);
+      await loginUser(email.trim(), password);
       toast.success("Login successful!");
-      navigate("/");
-    } catch (err) {
-      console.error("Login Error:", err);
-      toast.error("Login failed. Please check your credentials.");
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Login error:", error);
+
+      toast.error(
+        error?.code === "auth/invalid-credential"
+          ? "Invalid email or password."
+          : error?.code === "auth/too-many-requests"
+            ? "Too many attempts. Please try again later."
+            : error?.code === "auth/network-request-failed"
+              ? "Network error. Please check your connection."
+              : error?.message || "Login failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    if (loading) return;
+
     setLoading(true);
+
     try {
       await signInWithGoogle();
       toast.success("Login successful!");
-      navigate("/");
-    } catch (err) {
-      console.error("Google Sign-in Error:", err);
-      toast.error("Google sign-in failed.");
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+
+      if (
+        error?.code === "auth/popup-closed-by-user" ||
+        error?.code === "auth/cancelled-popup-request"
+      ) {
+        return;
+      }
+
+      toast.error(
+        error?.code === "auth/popup-blocked"
+          ? "Pop-up blocked. Please allow pop-ups and try again."
+          : error?.code === "auth/network-request-failed"
+            ? "Network error. Please check your connection."
+            : error?.message || "Google sign-in failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-50 dark:bg-gray-900 px-4">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6">
-        <h2 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 text-center mb-6">
-          Login
-        </h2>
+  const inputClassName = (hasError) =>
+    `input input-bordered min-h-12 w-full bg-white text-gray-900 placeholder:text-gray-400
+    dark:bg-gray-700 dark:text-white dark:border-gray-600
+    focus:outline-none focus:ring-2 focus:ring-indigo-500
+    ${hasError ? "border-red-500 focus:ring-red-500" : ""}`;
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email */}
-          <div className="flex flex-col">
-            <label className="mb-1 text-gray-700 dark:text-gray-200 font-semibold">Email</label>
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-indigo-50 px-4 py-10 dark:bg-gray-950 sm:px-6">
+      <section className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-8">
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+            Welcome back
+          </h1>
+
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            Sign in to continue to PawMart.
+          </p>
+        </header>
+
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-5"
+          noValidate
+        >
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200"
+            >
+              Email address
+            </label>
+
             <input
+              id="email"
               type="email"
-              placeholder="Enter your email"
+              autoComplete="email"
+              placeholder="you@example.com"
               disabled={loading}
-              className={`input input-bordered bg-gray-200 w-full dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${errors.email ? "border-red-500" : ""}`}
-              {...register("email", { 
-                required: "Email is required", 
-                pattern: { value: /^\S+@\S+$/i, message: "Invalid email address" } 
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "email-error" : undefined}
+              className={inputClassName(Boolean(errors.email))}
+              {...register("email", {
+                required: "Email address is required.",
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Please enter a valid email address.",
+                },
               })}
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+
+            {errors.email && (
+              <p
+                id="email-error"
+                role="alert"
+                className="mt-1.5 text-sm text-red-600 dark:text-red-400"
+              >
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
-          {/* Password */}
-          <div className="flex flex-col">
-            <label className="mb-1 text-gray-700 dark:text-gray-200 font-semibold">Password</label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              disabled={loading}
-              className={`input bg-gray-200 input-bordered w-full dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${errors.password ? "border-red-500" : ""}`}
-              {...register("password", { required: "Password is required" })}
-            />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label
+                htmlFor="password"
+                className="text-sm font-semibold text-gray-700 dark:text-gray-200"
+              >
+                Password
+              </label>
+            </div>
+
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                disabled={loading}
+                aria-invalid={Boolean(errors.password)}
+                aria-describedby={
+                  errors.password ? "password-error" : undefined
+                }
+                className={`${inputClassName(Boolean(errors.password))} pr-20`}
+                {...register("password", {
+                  required: "Password is required.",
+                })}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((previous) => !previous)}
+                disabled={loading}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-3 my-auto h-8 rounded px-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:text-indigo-300"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            {errors.password && (
+              <p
+                id="password-error"
+                role="alert"
+                className="mt-1.5 text-sm text-red-600 dark:text-red-400"
+              >
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className={`btn btn-sm btn-outline font-bold text-lg btn-primary w-full ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? <span className="animate-pulse">Logging in...</span> : "Login"}
+            {loading ? (
+              <>
+                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Signing in...
+              </>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
 
-        {/* OR Divider */}
-        <div className="flex items-center my-4">
-          <hr className="flex-1 border-gray-300 dark:border-gray-600" />
-          <span className="px-2 text-gray-500 dark:text-gray-400">OR</span>
-          <hr className="flex-1 border-gray-300 dark:border-gray-600" />
+        <div className="my-6 flex items-center gap-4">
+          <div className="h-px flex-1 bg-gray-200 dark:bg-gray-600" />
+          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Or continue with
+          </span>
+          <div className="h-px flex-1 bg-gray-200 dark:bg-gray-600" />
         </div>
 
-        {/* Google Sign-in */}
         <button
+          type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className={`btn btn-sm btn-outline font-bold text-lg btn-primary w-full ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+          className="flex min-h-12 w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
         >
-          <svg aria-label="Google logo" width="20" height="20" viewBox="0 0 512 512">
-            <g>
-              <path d="M0 0H512V512H0z" fill="#fff" />
-              <path fill="#34a853" d="M153 292c30 82 118 95 171 60h62v48A192 192 0 0190 341" />
-              <path fill="#4285f4" d="m386 400a140 175 0 0053-179H260v74h102q-7 37-38 57" />
-              <path fill="#fbbc02" d="m90 341a208 200 0 010-171l63 49q-12 37 0 73" />
-              <path fill="#ea4335" d="m153 219c22-69 116-109 179-50l55-54c-78-75-230-72-297 55" />
-            </g>
-          </svg>
-          {loading ? <span className="animate-pulse">Processing...</span> : "Login with Google"}
-        </button>
-
-        {/* GitHub */}
-        <button className="btn btn-sm btn-outline font-bold text-lg btn-primary w-full my-3">
-          <svg className="bg-gray-800"
-            aria-label="GitHub logo"
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 48 48"
           >
             <path
-              fill="white"
-              d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z"
-            ></path>
+              fill="#EA4335"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
+              transform="translate(0 4)"
+            />
+            <path
+              fill="#4285F4"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.72 7.18l7.64 5.93c4.46-4.12 7.12-10.2 7.12-17.58Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.12.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19Z"
+              transform="translate(0 4)"
+            />
+            <path
+              fill="#34A853"
+              d="M24 48c6.48 0 11.93-2.13 15.9-5.87l-7.64-5.93c-2.12 1.42-4.85 2.27-8.26 2.27-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"
+            />
           </svg>
-          Login with GitHub
+
+          Continue with Google
         </button>
 
-        <p className="text-center mt-4 text-gray-700 dark:text-gray-200">
-          Don’t have an account?{" "}
-          <Link className="text-indigo-500 font-bold hover:underline" to="/register">
-            Register
+        <p className="mt-7 text-center text-sm text-gray-600 dark:text-gray-300">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:text-indigo-400"
+          >
+            Create an account
           </Link>
         </p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 
