@@ -17,6 +17,7 @@ import CategoryFilteredProduct from "../pages/CategoryFilteredProduct";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import React from "react";
+import Contact from "../pages/Contact";
 
 
 const HomeLayoutWithToast = () => (
@@ -49,6 +50,10 @@ const router = createBrowserRouter([
       {
         path: "/about-us",
         element: <AboutUs></AboutUs>,
+      },
+      {
+        path: "/contact",
+        element: <Contact></Contact>,
       },
 
       // 🔒 Private Routes
