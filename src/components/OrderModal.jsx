@@ -23,11 +23,12 @@ const LABEL_CLASS =
 
 function getTodayDate() {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
 
-  return `${year}-${month}-${day}`;
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 function getProductPrice(listing) {
@@ -35,12 +36,40 @@ function getProductPrice(listing) {
   return Number.isFinite(price) && price >= 0 ? price : 0;
 }
 
+function getCustomerName(user) {
+  return (
+    user?.displayName ||
+    user?.name ||
+    user?.email?.split("@")[0] ||
+    ""
+  );
+}
+
+function isValidPhone(phone) {
+  // Supports digits, spaces, +, parentheses and hyphens.
+  // The hyphen is placed at the end to avoid character-class ambiguity.
+  return /^[0-9+()\s-]{7,20}$/.test(phone) &&
+    phone.replace(/\D/g, "").length >= 7;
+}
+
+async function readApiResponse(response) {
+  const text = await response.text();
+
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+}
+
 function OrderModal({ listing, user, onClose }) {
   const isPet = listing?.category?.toLowerCase() === "pet";
   const productPrice = getProductPrice(listing);
 
   const [formData, setFormData] = useState({
-    quantity: 1,
+    quantity: "1",
     address: "",
     date: "",
     phone: "",
@@ -48,6 +77,15 @@ function OrderModal({ listing, user, onClose }) {
   });
 
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -63,21 +101,12 @@ function OrderModal({ listing, user, onClose }) {
     };
   }, [onClose, submitting]);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
   function handleChange(event) {
     const { name, value } = event.target;
 
     setFormData((current) => ({
       ...current,
-      [name]: name === "quantity" ? value : value,
+      [name]: value,
     }));
   }
 
@@ -100,6 +129,7 @@ function OrderModal({ listing, user, onClose }) {
     const address = formData.address.trim();
     const phone = formData.phone.trim();
     const notes = formData.notes.trim();
+    const date = formData.date;
 
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
       toast.error("Quantity must be between 1 and 99.");
@@ -116,32 +146,32 @@ function OrderModal({ listing, user, onClose }) {
       return;
     }
 
-    if (!/^[0-9+\-()\s]{7,20}$/.test(phone)) {
-      toast.error("Please enter a valid phone number.");
+    if (!isValidPhone(phone)) {
+      toast.error("Enter a valid phone number with at least 7 digits.");
       return;
     }
 
-    if (!formData.date || formData.date < getTodayDate()) {
+    if (!date || date < getTodayDate()) {
       toast.error("Please select today or a future date.");
       return;
     }
 
     const orderPayload = {
-      name: user.displayName || user.name || user.email.split("@")[0],
+      name: getCustomerName(user),
       email: user.email,
       productId: listing._id,
       productName: listing.name,
       quantity,
       price: productPrice,
       address,
-      date: formData.date,
+      date,
       phone,
       notes,
     };
 
-    try {
-      setSubmitting(true);
+    setSubmitting(true);
 
+    try {
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: "POST",
         headers: {
@@ -150,24 +180,35 @@ function OrderModal({ listing, user, onClose }) {
         body: JSON.stringify(orderPayload),
       });
 
-      const data = await response.json().catch(() => ({}));
+      const data = await readApiResponse(response);
 
       if (!response.ok) {
+        console.error("Order API error:", {
+          status: response.status,
+          response: data,
+        });
+
         throw new Error(
-          data.message || "Unable to place your order. Please try again."
+          data.message ||
+            data.error ||
+            `Order failed (HTTP ${response.status}). Please try again.`
         );
       }
 
-      if (!data.insertedId) {
-        throw new Error(data.message || "The order could not be confirmed.");
-      }
+      // A successful HTTP response is the primary success signal.
+      // Do not require insertedId unless your backend contract guarantees it.
+      toast.success("Order placed successfully!", {
+        duration: 3500,
+      });
 
-      toast.success("Order placed successfully!");
       onClose?.();
     } catch (error) {
       console.error("Order submission failed:", error);
+
       toast.error(
-        error.message || "Something went wrong while placing your order."
+        error instanceof TypeError
+          ? "Cannot connect to the server. Check your API URL and backend."
+          : error.message || "Unable to place your order. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -176,13 +217,17 @@ function OrderModal({ listing, user, onClose }) {
 
   if (!listing) return null;
 
-  const totalPrice = productPrice * Number(formData.quantity || 0);
+  const quantity = Math.max(0, Number(formData.quantity) || 0);
+  const totalPrice = productPrice * quantity;
 
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/60 px-3 py-5 backdrop-blur-sm sm:items-center sm:px-5 sm:py-8"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !submitting) {
+        if (
+          event.target === event.currentTarget &&
+          !submitting
+        ) {
           onClose?.();
         }
       }}
@@ -193,8 +238,7 @@ function OrderModal({ listing, user, onClose }) {
         aria-labelledby="order-modal-title"
         className="relative my-auto w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-black/20 dark:border-slate-800 dark:bg-slate-950 sm:rounded-3xl"
       >
-        {/* Header */}
-        <div className="relative overflow-hidden bg-indigo-600 px-5 py-6 text-white sm:px-7 sm:py-7 dark:bg-indigo-700">
+        <div className="relative overflow-hidden bg-indigo-600 px-5 py-6 text-white dark:bg-indigo-700 sm:px-7 sm:py-7">
           <div className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-16 right-20 h-32 w-32 rounded-full bg-white/10" />
 
@@ -234,8 +278,10 @@ function OrderModal({ listing, user, onClose }) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-7">
-          {/* Product summary */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 p-5 sm:p-7"
+        >
           <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -295,7 +341,6 @@ function OrderModal({ listing, user, onClose }) {
             </div>
           </div>
 
-          {/* Customer information */}
           <div>
             <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">
               Customer information
@@ -309,12 +354,7 @@ function OrderModal({ listing, user, onClose }) {
                 <input
                   id="order-name"
                   type="text"
-                  value={
-                    user?.displayName ||
-                    user?.name ||
-                    user?.email?.split("@")[0] ||
-                    ""
-                  }
+                  value={getCustomerName(user)}
                   readOnly
                   className={INPUT_CLASS}
                 />
@@ -335,7 +375,6 @@ function OrderModal({ listing, user, onClose }) {
             </div>
           </div>
 
-          {/* Delivery information */}
           <div>
             <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">
               Delivery information
@@ -382,7 +421,6 @@ function OrderModal({ listing, user, onClose }) {
                     placeholder="01XXXXXXXXX"
                     autoComplete="tel"
                     inputMode="tel"
-                    pattern="[0-9+\-()\s]{7,20}"
                     maxLength={20}
                     title="Enter a valid phone number."
                     required
@@ -436,7 +474,6 @@ function OrderModal({ listing, user, onClose }) {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 dark:border-slate-800 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -461,7 +498,9 @@ function OrderModal({ listing, user, onClose }) {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Your order details will be submitted for processing.
+            {submitting
+              ? "Submitting your order. Please wait..."
+              : "Your order details will be submitted for processing."}
           </p>
         </form>
       </section>
