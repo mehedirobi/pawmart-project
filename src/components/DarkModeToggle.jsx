@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MdDarkMode, MdLightMode } from "react-icons/md";
 
-const LIGHT_THEME = "mytheme";
+const LIGHT_THEME = "light";
 const DARK_THEME = "dark";
 const STORAGE_KEY = "theme";
 

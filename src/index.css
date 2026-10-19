@@ -1,6 +1,7 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark, cupcake;
+  themes: light --default, dark;
 }
 
 @import "slick-carousel/slick/slick.css";
@@ -14,5 +15,4 @@
 .animate-fadeIn {
   animation: fadeIn 0.25s ease-out;
 }
-
 
