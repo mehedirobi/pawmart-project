@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import OrderModal from "../components/OrderModal";
 import { AuthContext } from "../context/AuthContext";
 
-const API_URL = "https://pawmart-server-six.vercel.app";
+const API_URL = "https://pawmart-server-peach.vercel.app";
 
 const ListingDetails = () => {
   const { user } = useContext(AuthContext);

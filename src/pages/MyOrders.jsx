@@ -13,7 +13,7 @@ import {
   FaReceipt,
 } from "react-icons/fa";
 
-const API_URL = "https://pawmart-server-six.vercel.app";
+const API_URL = "https://pawmart-server-peach.vercel.app";
 const ORDERS_URL = `${API_URL}/orders`;
 
 const formatPrice = (price) => {

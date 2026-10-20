@@ -14,7 +14,7 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import { AuthContext } from "../context/AuthContext";
 
-const API_URL = "https://pawmart-server-six.vercel.app/products";
+const API_URL = "https://pawmart-server-peach.vercel.app/products";
 
 const CATEGORIES = [
   { value: "Pets", label: "Pets & Adoption" },

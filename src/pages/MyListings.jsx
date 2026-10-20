@@ -16,7 +16,7 @@ import {
 } from "react-icons/fa";
 import { AuthContext } from "../context/AuthContext";
 
-const API_URL = "https://pawmart-server-six.vercel.app";
+const API_URL = "https://pawmart-server-peach.vercel.app";
 const PRODUCTS_URL = `${API_URL}/products`;
 
 const INITIAL_FORM = {

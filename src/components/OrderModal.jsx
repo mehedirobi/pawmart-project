@@ -12,7 +12,7 @@ import {
 import toast from "react-hot-toast";
 
 const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:3000"
+  import.meta.env.VITE_API_URL || "https://pawmart-server-peach.vercel.app"
 ).replace(/\/+$/, "");
 
 const INPUT_CLASS =

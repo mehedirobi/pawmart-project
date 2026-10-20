@@ -10,7 +10,7 @@ import {
   FaTag,
 } from "react-icons/fa";
 
-const API_URL = "https://pawmart-server-six.vercel.app";
+const API_URL = "https://pawmart-server-peach.vercel.app";
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-BD", {
   style: "currency",
   currency: "BDT",

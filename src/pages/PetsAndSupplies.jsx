@@ -12,7 +12,7 @@ import {
   FaBoxOpen,
 } from "react-icons/fa";
 
-const API_URL = "https://pawmart-server-six.vercel.app/products";
+const API_URL = "https://pawmart-server-peach.vercel.app/products";
 const ITEMS_PER_PAGE = 9;
 
 const CATEGORIES = [

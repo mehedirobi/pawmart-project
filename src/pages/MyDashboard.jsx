@@ -27,7 +27,7 @@ import {
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
-const API_URL = "https://pawmart-server-six.vercel.app";
+const API_URL = "https://pawmart-server-peach.vercel.app";
 
 const CHART_COLORS = [
   "#4F46E5",

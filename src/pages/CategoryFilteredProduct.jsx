@@ -11,7 +11,7 @@ import {
 } from "react-icons/md";
 import { motion, useReducedMotion } from "motion/react";
 
-const API_URL = "https://pawmart-server-six.vercel.app/products";
+const API_URL = "https://pawmart-server-peach.vercel.app/products";
 const FALLBACK_IMAGE =
   "https://placehold.co/600x400/f1f5f9/64748b?text=PawMart";
 

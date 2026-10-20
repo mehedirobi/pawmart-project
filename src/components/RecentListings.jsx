@@ -8,7 +8,7 @@ import {
   MdRefresh,
 } from "react-icons/md";
 
-const API_URL = "https://pawmart-server-six.vercel.app/products/recent";
+const API_URL = "https://pawmart-server-peach.vercel.app/products/recent";
 
 const SKELETON_ITEMS = Array.from({ length: 6 }, (_, index) => index);
 
